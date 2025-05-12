@@ -1,93 +1,60 @@
-# coding:utf-8
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtMultimedia import QMediaPlaylist
+# utils/signal_bus.py
+from PyQt6.QtCore import QObject, pyqtSignal
+from .singleton import qsingleton
 
-from common.crawler import SongQuality, QueryServerType
+@qsingleton
+class SignalBus(QObject):
+    """ Signal bus for the Jewelry Shop application """
 
-from .database.entity import AlbumInfo, SingerInfo, SongInfo
-from .singleton import Singleton
+    def __init__(self):
+        super().__init__()
+        print("SignalBus initialized")
 
+    # --- Сигналы об ошибках и общие ---
+    error_occurred = pyqtSignal(str)
+    status_message = pyqtSignal(str)
+    database_error = pyqtSignal(str)
 
-class SignalBus(Singleton, QObject):
-    """ Signal bus in Groove Music """
-    appMessageSig = pyqtSignal(object)          # APP 发来消息
-    appErrorSig = pyqtSignal(str)               # APP 发生异常
-    appRestartSig = pyqtSignal()                # APP 需要重启
+    # --- Сигналы аутентификации ---
+    login_successful = pyqtSignal(str, dict) # Тип пользователя ('client'/'worker'), данные пользователя
+    login_failed = pyqtSignal(str)          # Причина ошибки
+    logout_completed = pyqtSignal()         # Сигнал о выходе
 
-    randomPlayAllSig = pyqtSignal()             # 无序播放所有
-    playCheckedSig = pyqtSignal(list)           # 播放选中的歌曲
-    nextToPlaySig = pyqtSignal(list)            # 下一首播放
-    playAlbumSig = pyqtSignal(str, str)         # 播放专辑
-    playOneSongCardSig = pyqtSignal(SongInfo)   # 将播放列表重置为一首歌
-    playPlaylistSig = pyqtSignal(list, int)     # 播放歌曲列表
+    # --- Сигналы CRUD (Полный список) ---
 
-    playBySongInfoSig = pyqtSignal(SongInfo)          # 更新歌曲卡列表控件的正在播放歌曲
-    getAlbumDetailsUrlSig = pyqtSignal(AlbumInfo)     # 在线查看专辑详细信息
-    getSingerDetailsUrlSig = pyqtSignal(SingerInfo)   # 在线查看歌手详细信息
-    getSongDetailsUrlSig = pyqtSignal(SongInfo, QueryServerType)  # 在线查看歌曲详细信息
+    # Clients
+    client_created = pyqtSignal(dict)
+    client_updated = pyqtSignal(dict)
+    client_deleted = pyqtSignal(str) # id
 
-    addSongsToPlayingPlaylistSig = pyqtSignal(list)      # 添加到正在播放
-    addSongsToNewCustomPlaylistSig = pyqtSignal(list)    # 添加到新建自定义播放列表
-    addSongsToCustomPlaylistSig = pyqtSignal(str, list)  # 添加到自定义播放列表
-    addFilesToCustomPlaylistSig = pyqtSignal(str, list)  # 添加本地文件到播放列表
+    # Workers
+    worker_created = pyqtSignal(dict)
+    worker_updated = pyqtSignal(dict)
+    worker_deleted = pyqtSignal(str) # id
 
-    editSongInfoSig = pyqtSignal(SongInfo, SongInfo)          # 编辑歌曲信息
-    editAlbumInfoSig = pyqtSignal(AlbumInfo, AlbumInfo, str)  # 编辑专辑信息
+    # Providers
+    provider_created = pyqtSignal(dict)
+    provider_updated = pyqtSignal(dict)
+    provider_deleted = pyqtSignal(str) # id
 
-    removeSongSig = pyqtSignal(list)            # 删除本地歌曲
-    clearPlayingPlaylistSig = pyqtSignal()      # 清空正在播放列表
-    deletePlaylistSig = pyqtSignal(str)         # 删除自定义播放列表
-    renamePlaylistSig = pyqtSignal(str, str)    # 重命名自定义播放列表
+    # Materials
+    material_created = pyqtSignal(dict)
+    material_updated = pyqtSignal(dict)
+    material_deleted = pyqtSignal(str) # id
+    material_balance_changed = pyqtSignal(str, int) # material_id, new_balance
 
-    selectionModeStateChanged = pyqtSignal(bool)  # 进入/退出 选择模式
+    # Orders
+    order_created = pyqtSignal(dict)
+    order_updated = pyqtSignal(dict)
+    order_deleted = pyqtSignal(str) # id
+    order_status_changed = pyqtSignal(str, str) # order_id, new_status_value
 
-    showPlayingPlaylistSig = pyqtSignal()                        # 显示正在播放列表
-    switchToPlayingInterfaceSig = pyqtSignal()                   # 显示正在播放界面信号
-    switchToSettingInterfaceSig = pyqtSignal()                   # 切换到设置界面信号
-    switchToSingerInterfaceSig = pyqtSignal(str)                 # 切换到歌手界面
-    switchToAlbumInterfaceSig = pyqtSignal(str, str)             # 切换到专辑界面
-    switchToMyMusicInterfaceSig = pyqtSignal()                   # 切换到我的音乐界面
-    switchToRecentPlayInterfaceSig = pyqtSignal()                # 切换到最近播放界面
-    switchToPlaylistInterfaceSig = pyqtSignal(str)               # 切换到播放列表界面信号
-    switchToPlaylistCardInterfaceSig = pyqtSignal()              # 切换到播放列表卡界面
-    switchToSmallestPlayInterfaceSig = pyqtSignal()              # 显示最小播放模式界面
-    switchToVideoInterfaceSig = pyqtSignal(str, str)             # 切换到视频界面
-    switchToLabelNavigationInterfaceSig = pyqtSignal(list, str)  # 显示标签导航界面
-    switchToMoreSearchResultInterfaceSig = pyqtSignal(str, str, list) # 切换到更多搜索结果界面
+    # MaterialOnOrder (Связи) - сигналы могут быть менее нужны, т.к. управляются через заказ
+    material_linked_to_order = pyqtSignal(dict) # Данные MaterialOnOrder
+    material_unlinked_from_order = pyqtSignal(str) # id MaterialOnOrder
 
-
-    nextSongSig = pyqtSignal()             # 下一首
-    lastSongSig = pyqtSignal()             # 上一首
-    togglePlayStateSig = pyqtSignal()      # 播放/暂停
-    progressSliderMoved = pyqtSignal(int)  # 播放进度条滑动
-    downloadSongSig = pyqtSignal(SongInfo, SongQuality)   # 开始下载一首歌
-    downloadSongsSig = pyqtSignal(list, SongQuality)   # 开始下载多首歌
-
-    muteStateChanged = pyqtSignal(bool)   # 静音
-    volumeChanged = pyqtSignal(int)       # 调整音量
-
-    randomPlayChanged = pyqtSignal(bool)                        # 随机播放
-    loopModeChanged = pyqtSignal(QMediaPlaylist.PlaybackMode)   # 循环模式
-
-    playSpeedUpSig = pyqtSignal()       # 加速播放
-    playSpeedDownSig = pyqtSignal()     # 减速播放
-    playSpeedResetSig = pyqtSignal()    # 恢复播放速度
-
-    writePlayingSongStarted = pyqtSignal()     # 开始向正在播放的歌曲写入数据
-    writePlayingSongFinished = pyqtSignal()    # 完成向正在播放的歌曲写入数据
-
-    showMainWindowSig = pyqtSignal()      # 显示主界面
-    fullScreenChanged = pyqtSignal(bool)  # 全屏/退出全屏
-
-    downloadAvatarFinished = pyqtSignal(str, str)  # 下载了一个头像
-
-    totalOnlineSongsChanged = pyqtSignal(int)      # 搜索到的在线音乐总数发生变化
-
-    lyricFontChanged = pyqtSignal(QFont)                       # 正在播放界面歌词字体改变
-    albumBlurRadiusChanged = pyqtSignal(int)                   # 正在播放界面背景磨砂半径改变
-
-    desktopLyricStyleChanged = pyqtSignal()              # 桌面歌词样式改变
-
-
-signalBus = SignalBus()
+    # MaterialProvider (Связи)
+    material_linked_to_provider = pyqtSignal(dict) # Данные MaterialProvider
+    material_unlinked_from_provider = pyqtSignal(str) # id MaterialProvider
+        
+signalbus = SignalBus()

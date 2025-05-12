@@ -3,9 +3,9 @@ from collections import deque
 from enum import Enum
 from math import cos, pi
 
-from PyQt5.QtCore import QDateTime, Qt, QTimer, QPoint
-from PyQt5.QtGui import QWheelEvent
-from PyQt5.QtWidgets import QApplication, QScrollArea, QAbstractScrollArea
+from PyQt6.QtCore import QDateTime, Qt, QTimer, QPoint
+from PyQt6.QtGui import QWheelEvent
+from PyQt6.QtWidgets import QApplication, QScrollArea, QAbstractScrollArea
 
 
 class SmoothScroll:

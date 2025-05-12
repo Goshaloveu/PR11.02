@@ -8,8 +8,8 @@ import cv2 as cv
 import numpy as np
 from colorthief import ColorThief
 from PIL import Image
-from PyQt5.QtCore import QIODevice, QBuffer
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt6.QtCore import QIODevice, QBuffer
+from PyQt6.QtGui import QImage, QPixmap
 from scipy.ndimage.filters import gaussian_filter
 
 from .exception_handler import exceptionHandler

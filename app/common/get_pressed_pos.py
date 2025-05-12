@@ -1,7 +1,7 @@
 # coding:utf-8
 from enum import Enum
-from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtWidgets import QWidget
 
 
 class Position(Enum):

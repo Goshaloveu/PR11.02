@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-from PyQt5.QtCore import QStandardPaths
+from PyQt6.QtCore import QStandardPaths
 
 # change DEBUG to False if you want to compile the code to exe
 DEBUG = True

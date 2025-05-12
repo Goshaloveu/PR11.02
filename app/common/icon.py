@@ -1,9 +1,9 @@
 # coding:utf-8
 from typing import Union
 
-from PyQt5.QtCore import QPoint, QRect, QSize, Qt, QRectF
-from PyQt5.QtGui import QIcon, QIconEngine, QImage, QPainter, QPixmap
-from PyQt5.QtSvg import QSvgRenderer
+from PyQt6.QtCore import QPoint, QRect, QSize, Qt, QRectF
+from PyQt6.QtGui import QIcon, QIconEngine, QImage, QPainter, QPixmap
+from PyQt6.QtSvg import QSvgRenderer
 
 from .config import config, Theme
 

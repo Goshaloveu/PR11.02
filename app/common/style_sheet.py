@@ -1,7 +1,7 @@
 # coding:utf-8
 from .config import config, Theme
-from PyQt5.QtCore import QFile
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtCore import QFile
+from PyQt6.QtWidgets import QWidget
 
 
 def getStyleSheet(file: str, theme=Theme.AUTO):

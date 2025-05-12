@@ -5,12 +5,8 @@ from pathlib import Path
 from platform import platform
 from typing import Union
 
-from PyQt5.QtCore import QDir, QFileInfo, QProcess, QUrl, QOperatingSystemVersion
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtSql import QSqlDatabase
-
-from common.database import DBInitializer
-from common.database.service import PlaylistService
+from PyQt6.QtCore import QDir, QFileInfo, QProcess, QUrl, QOperatingSystemVersion
+from PyQt6.QtGui import QDesktopServices
 
 
 def adjustName(name: str):
@@ -23,13 +19,6 @@ def adjustName(name: str):
     """
     name = re.sub(r'[\\/:*?"<>|\r\n]+', "_", name).strip()
     return name.rstrip(".")
-
-
-def getPlaylistNames():
-    """ get all playlist names in database """
-    db = QSqlDatabase.database(DBInitializer.CONNECTION_NAME)
-    service = PlaylistService(db)
-    return [i.name for i in service.listAll()]
 
 
 def getWindowsVersion():

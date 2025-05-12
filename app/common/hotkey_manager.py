@@ -1,7 +1,7 @@
 # coding:utf-8
 from copy import deepcopy
 
-from PyQt5.QtCore import QAbstractEventDispatcher, QAbstractNativeEventFilter
+from PyQt6.QtCore import QAbstractEventDispatcher, QAbstractNativeEventFilter
 
 from .singleton import Singleton
 
