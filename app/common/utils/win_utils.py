@@ -1,13 +1,12 @@
 # coding:utf-8
-from ctypes import Structure, byref, sizeof, windll
+from ctypes import Structure, byref, sizeof, windll, c_int, POINTER, pointer, c_bool
 from ctypes.wintypes import DWORD, HWND, LPARAM, RECT, UINT
 
 import win32api
 import win32con
 import win32gui
-from PyQt5.QtCore import QOperatingSystemVersion
-from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtWinExtras import QtWin
+from PyQt6.QtCore import QOperatingSystemVersion
+from PyQt6.QtGui import QGuiApplication
 from win32comext.shell import shellcon
 
 
@@ -89,7 +88,7 @@ def getResizeBorderThickness(hWnd):
     if result > 0:
         return result
 
-    thickness = 8 if QtWin.isCompositionEnabled() else 4
+    thickness = 8 if isCompositionEnabled() else 4
     return round(thickness*window.devicePixelRatio())
 
 
@@ -252,3 +251,17 @@ class WindowsMoveResize:
             window edges
         """
         pass
+
+
+def isCompositionEnabled():
+    """Проверка включена ли композиция в Windows (DWM)"""
+    try:
+        # Загружаем DWM API
+        dwmapi = windll.dwmapi
+        enabled = c_bool()
+        # Вызываем DwmIsCompositionEnabled
+        res = dwmapi.DwmIsCompositionEnabled(byref(enabled))
+        return res == 0 and enabled.value
+    except Exception:
+        # В случае ошибки возвращаем True для современных Windows
+        return True

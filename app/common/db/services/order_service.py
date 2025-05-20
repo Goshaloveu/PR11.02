@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional, Dict, Any
 import logging
+from datetime import datetime
 
 from ..utils import UUIDUtils
 
@@ -19,7 +20,7 @@ from ..models_pydantic import (
 from .client_service import ClientService
 from .worker_service import WorkerService
 
-from ...signal_bus import signalbus
+from ...signal_bus import signalBus
 from .material_service import MaterialService # Зависимость от другого сервиса
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,10 @@ class OrderService:
 
         materials_to_link = order_in.materials
         order_data = order_in.model_dump(exclude={'materials'})
+        
+        # Проверяем наличие даты и устанавливаем её, если не указана
+        if 'date' not in order_data or not order_data['date']:
+            order_data['date'] = datetime.now()
 
         # --- Проверки перед транзакцией ---
         if not self.client_repo.get(db, id=order_in.client_id):
@@ -153,7 +158,7 @@ class OrderService:
             # 5. Возвращаем результат и эмитируем сигнал
             pydantic_order = self.get_order(db, order_id, load_related=True) # Получаем с подгруженными данными
             if pydantic_order:
-                 signalbus.order_created.emit(pydantic_order.model_dump())
+                 signalBus.order_created.emit(pydantic_order.model_dump())
                  return pydantic_order
             else: # Маловероятно, но возможно
                  raise Exception("Failed to reload created order.")
@@ -161,7 +166,7 @@ class OrderService:
         except Exception as e:
             logger.error(f"Service Error creating order with materials: {e}")
             db.rollback()
-            signalbus.database_error.emit(f"Ошибка создания заказа: {e}")
+            signalBus.database_error.emit(f"Ошибка создания заказа: {e}")
             raise
 
 
@@ -187,9 +192,9 @@ class OrderService:
             pydantic_order = Order.model_validate(updated_db_order)
 
             # Эмитируем сигналы
-            signalbus.order_updated.emit(pydantic_order.model_dump())
+            signalBus.order_updated.emit(pydantic_order.model_dump())
             if "status" in update_data and updated_db_order.status != original_status:
-                 signalbus.order_status_changed.emit(order_id, updated_db_order.status.value)
+                 signalBus.order_status_changed.emit(order_id, updated_db_order.status.value)
 
             # TODO: Добавить логику возврата материалов, если статус меняется на отмененный
             # if "status" in update_data and updated_db_order.status == OrderStatus.CANCELLED:
@@ -198,7 +203,7 @@ class OrderService:
             return pydantic_order
         except Exception as e:
              logger.error(f"Service Error updating order {order_id}: {e}")
-             signalbus.database_error.emit(f"Ошибка обновления заказа: {e}")
+             signalBus.database_error.emit(f"Ошибка обновления заказа: {e}")
              raise
 
 
@@ -217,13 +222,13 @@ class OrderService:
             # SQLAlchemy должен автоматически удалить связанные MaterialOnOrder
             deleted = self.order_repo.remove(db, id=order_id)
             if deleted:
-                signalbus.order_deleted.emit(order_id)
+                signalBus.order_deleted.emit(order_id)
                 return True
             return False # remove вернул None
         except Exception as e:
             logger.error(f"Service Error deleting order {order_id}: {e}")
             db.rollback()
-            signalbus.database_error.emit(f"Ошибка удаления заказа {order_id}: {e}")
+            signalBus.database_error.emit(f"Ошибка удаления заказа {order_id}: {e}")
             raise
 
     # --- Вспомогательные методы для управления материалами в заказе (Примеры) ---
@@ -268,13 +273,13 @@ class OrderService:
             # Пока оставляем так для простоты.
 
             pydantic_link = MaterialOnOrder.model_validate(db_link)
-            signalbus.material_linked_to_order.emit(pydantic_link.model_dump())
+            signalBus.material_linked_to_order.emit(pydantic_link.model_dump())
             return pydantic_link
 
         except Exception as e:
             logger.error(f"Service error adding material to order: {e}")
             # Rollback здесь не сработает правильно, т.к. commit уже был
-            signalbus.database_error.emit(f"Ошибка добавления материала к заказу: {e}")
+            signalBus.database_error.emit(f"Ошибка добавления материала к заказу: {e}")
             raise
 
     def remove_material_from_order(self, db: Session, link_id: str) -> bool:
@@ -299,7 +304,7 @@ class OrderService:
              # Удаляем саму связь
              deleted = self.mat_on_order_repo.remove(db, id=link_id)
              if deleted:
-                 signalbus.material_unlinked_from_order.emit(link_id)
+                 signalBus.material_unlinked_from_order.emit(link_id)
                  return True
              else:
                   # Если удаление не удалось, нужно откатить возврат баланса (сложно без транзакции)
@@ -311,7 +316,7 @@ class OrderService:
          except Exception as e:
              logger.error(f"Service error removing material from order: {e}")
              # Попытка отката здесь тоже сложна
-             signalbus.database_error.emit(f"Ошибка удаления материала из заказа: {e}")
+             signalBus.database_error.emit(f"Ошибка удаления материала из заказа: {e}")
              raise
 
     def update_material_amount_in_order(self, db: Session, link_id: str, new_amount: int) -> Optional[MaterialOnOrder]:
@@ -342,15 +347,42 @@ class OrderService:
 
              pydantic_link = MaterialOnOrder.model_validate(updated_link)
              # Можно добавить отдельный сигнал об изменении кол-ва материала в заказе
-             signalbus.material_linked_to_order.emit(pydantic_link.model_dump()) # Используем общий сигнал пока
+             signalBus.material_linked_to_order.emit(pydantic_link.model_dump()) # Используем общий сигнал пока
              return pydantic_link
 
          except Exception as e:
              logger.error(f"Service error updating material amount in order: {e}")
              # Откат сложен без транзакции
-             signalbus.database_error.emit(f"Ошибка изменения кол-ва материала в заказе: {e}")
+             signalBus.database_error.emit(f"Ошибка изменения кол-ва материала в заказе: {e}")
              raise
 
+    def get_filtered_orders(self, db: Session, worker_id: Optional[str] = None, 
+                          status: Optional[str] = None, client_id: Optional[str] = None,
+                          date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> List[Order]:
+        """Get orders with various filters"""
+        logger.debug(f"Service: Getting filtered orders worker={worker_id} status={status} client={client_id}")
+        
+        filters = {}
+        if worker_id:
+            filters['worker_id'] = worker_id
+        if status:
+            filters['status'] = status
+        if client_id:
+            filters['client_id'] = client_id
+            
+        # Date range is handled separately
+        db_orders = self.order_repo.find_with_filters(db, filters, date_from, date_to)
+        return [Order.model_validate(o) for o in db_orders]
+        
+    def count_orders_by_status(self, db: Session, status: str, worker_id: Optional[str] = None) -> int:
+        """Count orders by status"""
+        logger.debug(f"Service: Counting orders status={status} worker={worker_id}")
+        
+        filters = {'status': status}
+        if worker_id:
+            filters['worker_id'] = worker_id
+            
+        return self.order_repo.count_with_filters(db, filters)
 
 # Аналогично создаем services/material_on_order_service.py и services/material_provider_service.py
 # с полными CRUD методами, если нужна отдельная логика для них.

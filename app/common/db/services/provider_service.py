@@ -7,7 +7,7 @@ import logging
 from ..repositories import ProviderRepository
 from ..models_sqlalchemy import Provider as ProviderSQL
 from ..models_pydantic import Provider, ProviderCreate, ProviderUpdate
-from ...signal_bus import signalbus
+from ...signal_bus import signalBus
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +39,11 @@ class ProviderService:
         try:
             db_obj = self.repository.create(db, obj_in=provider_in) # Pydantic модель напрямую
             pydantic_obj = Provider.model_validate(db_obj)
-            signalbus.provider_created.emit(pydantic_obj.model_dump())
+            signalBus.provider_created.emit(pydantic_obj.model_dump())
             return pydantic_obj
         except Exception as e:
             logger.error(f"Service Error creating provider: {e}")
-            signalbus.database_error.emit(f"Ошибка создания поставщика: {e}")
+            signalBus.database_error.emit(f"Ошибка создания поставщика: {e}")
             raise
 
     def update_provider(self, db: Session, provider_id: str, provider_in: ProviderUpdate) -> Optional[Provider]:
@@ -62,11 +62,11 @@ class ProviderService:
         try:
             updated_db_obj = self.repository.update(db, db_obj=db_obj, obj_in=update_data)
             pydantic_obj = Provider.model_validate(updated_db_obj)
-            signalbus.provider_updated.emit(pydantic_obj.model_dump())
+            signalBus.provider_updated.emit(pydantic_obj.model_dump())
             return pydantic_obj
         except Exception as e:
              logger.error(f"Service Error updating provider {provider_id}: {e}")
-             signalbus.database_error.emit(f"Ошибка обновления поставщика: {e}")
+             signalBus.database_error.emit(f"Ошибка обновления поставщика: {e}")
              raise
 
     def delete_provider(self, db: Session, provider_id: str) -> bool:
@@ -79,12 +79,12 @@ class ProviderService:
             # Пока что просто удаляем поставщика.
             deleted = self.repository.remove(db, id=provider_id)
             if deleted:
-                signalbus.provider_deleted.emit(provider_id)
+                signalBus.provider_deleted.emit(provider_id)
                 return True
             logger.warning(f"Provider {provider_id} not found for deletion.")
             return False
         except Exception as e: # Ловим IntegrityError
             logger.error(f"Service Error deleting provider {provider_id}: {e}")
             db.rollback()
-            signalbus.database_error.emit(f"Ошибка удаления поставщика {provider_id}. Возможно, он связан с материалами.")
+            signalBus.database_error.emit(f"Ошибка удаления поставщика {provider_id}. Возможно, он связан с материалами.")
             raise

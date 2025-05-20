@@ -14,6 +14,8 @@ class SignalBus(QObject):
     error_occurred = pyqtSignal(str)
     status_message = pyqtSignal(str)
     database_error = pyqtSignal(str)
+    appMessageSig = pyqtSignal(str)  # Сигнал для сообщений приложения
+    appErrorSig = pyqtSignal(str)    # Сигнал для ошибок приложения
 
     # --- Сигналы аутентификации ---
     login_successful = pyqtSignal(str, dict) # Тип пользователя ('client'/'worker'), данные пользователя
@@ -23,12 +25,12 @@ class SignalBus(QObject):
     # --- Сигналы CRUD (Полный список) ---
 
     # Clients
-    client_created = pyqtSignal(dict)
+    client_created = pyqtSignal(object)  # Может быть SQLAlchemy модель или dict
     client_updated = pyqtSignal(dict)
     client_deleted = pyqtSignal(str) # id
 
     # Workers
-    worker_created = pyqtSignal(dict)
+    worker_created = pyqtSignal(object)  # Может быть SQLAlchemy модель или dict
     worker_updated = pyqtSignal(dict)
     worker_deleted = pyqtSignal(str) # id
 
@@ -57,4 +59,4 @@ class SignalBus(QObject):
     material_linked_to_provider = pyqtSignal(dict) # Данные MaterialProvider
     material_unlinked_from_provider = pyqtSignal(str) # id MaterialProvider
         
-signalbus = SignalBus()
+signalBus = SignalBus()

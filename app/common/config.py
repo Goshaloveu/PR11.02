@@ -17,14 +17,12 @@ from .setting import APP_NAME, CONFIG_FOLDER, CONFIG_FILE
 # config.py
 import os
 
-# --- Настройки базы данных MySQL ---
 # DB_USER = os.getenv("DB_USER", "root")
-# DB_PASSWORD = os.getenv("DB_PASSWORD", "your_mysql_password") # Замени на свой пароль или используй env
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "your_mysql_password")
 # DB_HOST = os.getenv("DB_HOST", "localhost")
 # DB_PORT = os.getenv("DB_PORT", "3306")
-# DB_NAME = os.getenv("DB_NAME", "terra") # Имя твоей БД
+# DB_NAME = os.getenv("DB_NAME", "terra")
 
-# Строка подключения для SQLAlchemy
 # Формат: mysql+<driver>://<user>:<password>@<host>[:<port>]/<database>
 DATABASE_URL = url = URL.create(
     "mysql+pymysql",
@@ -33,7 +31,6 @@ DATABASE_URL = url = URL.create(
     host="localhost",
     database="terra",
 )
-# Если используешь PyMySQL, замени 'mysql+mysqlconnector' на 'mysql+pymysql'
 
 # --- Настройки безопасности ---
 SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_jwt_or_sessions") # Нужен для токенов/сессий
@@ -42,22 +39,43 @@ PASSWORD_CONTEXT_SCHEMES = ["bcrypt"] # Схема хеширования пар
 # --- Прочее ---
 # Добавь другие настройки по необходимости
 
-# class Language(Enum):
-#     """ Language enumeration """
+class Language(Enum):
+    """ Language enumeration """
+    RUSSIAN = "ru"
+    ENGLISH = "en"
+    AUTO = "Auto"
 
-#     CHINESE_SIMPLIFIED = "zh"
-#     CHINESE_TRADITIONAL = "hk"
-#     ENGLISH = "en"
-#     AUTO = "Auto"
+class Theme(Enum):
+    """ Theme enumeration """
+    LIGHT = "Light"
+    DARK = "Dark"
+    AUTO = "Auto"
 
+class Config:
+    def __init__(self):
+        # Basic settings
+        self.language = Language.RUSSIAN
+        self.theme = Theme.LIGHT
+        
+        # DPI settings
+        self.dpiScale = "Auto"
+        
+        # Window settings
+        self.minimizeToTray = True
+        self.enableAcrylicBackground = False
+    
+    def get(self, item):
+        if isinstance(item, str):
+            return getattr(self, item, None)
+        return item
+    
+    def set(self, item, value):
+        if isinstance(item, str):
+            setattr(self, item, value)
+        else:
+            setattr(self, item.__name__, value)
 
-# class Theme(Enum):
-#     """ Theme enumeration """
-
-#     LIGHT = "Light"
-#     DARK = "Dark"
-#     AUTO = "Auto"
-
+config = Config()
 
 # class ConfigValidator:
 #     """ Config validator """

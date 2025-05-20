@@ -6,7 +6,7 @@ import logging
 from ..repositories import MaterialProviderRepository, ProviderRepository, MaterialRepository
 from ..models_sqlalchemy import MaterialProvider as MatProvSQL
 from ..models_pydantic import MaterialProvider, MaterialProviderCreate
-from ...signal_bus import signalbus
+from ...signal_bus import signalBus
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +54,11 @@ class MaterialProviderService:
             # ID для MaterialProvider генерируется в Pydantic BaseEntity
             db_obj = self.repository.create(db, obj_in=link_in)
             pydantic_obj = MaterialProvider.model_validate(db_obj)
-            signalbus.material_linked_to_provider.emit(pydantic_obj.model_dump())
+            signalBus.material_linked_to_provider.emit(pydantic_obj.model_dump())
             return pydantic_obj
         except Exception as e:
             logger.error(f"Service Error linking material to provider: {e}")
-            signalbus.database_error.emit(f"Ошибка связи материала и поставщика: {e}")
+            signalBus.database_error.emit(f"Ошибка связи материала и поставщика: {e}")
             raise
 
     def unlink_material_from_provider(self, db: Session, link_id: Optional[str] = None, *, provider_id: Optional[str] = None, material_id: Optional[str] = None) -> bool:
@@ -85,11 +85,11 @@ class MaterialProviderService:
         try:
             deleted = self.repository.remove(db, id=link_id_to_emit) # Удаляем по ID
             if deleted:
-                signalbus.material_unlinked_from_provider.emit(link_id_to_emit)
+                signalBus.material_unlinked_from_provider.emit(link_id_to_emit)
                 return True
             return False # remove вернул None
         except Exception as e:
             logger.error(f"Service Error unlinking material from provider ({log_msg}): {e}")
             db.rollback()
-            signalbus.database_error.emit(f"Ошибка удаления связи материала и поставщика: {e}")
+            signalBus.database_error.emit(f"Ошибка удаления связи материала и поставщика: {e}")
             raise

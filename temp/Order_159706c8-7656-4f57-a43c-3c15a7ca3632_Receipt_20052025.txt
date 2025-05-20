@@ -1,0 +1,17 @@
+RECEIPT
+
+Order number: 159706c8-7656-4f57-a43c-3c15a7ca3632
+Date: 20.05.2025 07:45
+Client: Иван Иванов
+Phone: 3333333333
+Organization address: Sample St., 123, office 45
+
+Ordered services:
+
+Materials:
+- Material ID: fa26c361-32d6-11f0-af3a-fc34974d35ef: 5500 rub. x 1 = 5500 rub.
+
+TOTAL: 5500 rub.
+
+Issue date: 20.05.2025
+Thank you for choosing our company!

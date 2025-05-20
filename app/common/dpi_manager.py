@@ -12,8 +12,8 @@ else:
     import xcffib
     import xcffib.xproto
     import xcffib.randr
-    from PyQt5.QtX11Extras import QX11Info
-    from PyQt5 import sip
+    from PyQt6.QtX11Extras import QX11Info
+    from PyQt6 import sip
 
 
 from .config import config

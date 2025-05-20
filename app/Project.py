@@ -4,41 +4,41 @@ import sys
 from inspect import getsourcefile
 from pathlib import Path
 
-os.chdir(Path(getsourcefile(lambda: 0)).resolve().parent)
+# Get the parent directory (repository root)
+current_dir = Path(getsourcefile(lambda: 0)).resolve().parent
+parent_dir = current_dir.parent
+os.chdir(parent_dir)
 
+# Add the parent directory to Python path so we can use absolute imports
+sys.path.append(str(parent_dir))
 
 from PyQt6.QtCore import QLocale, Qt, QTranslator
 from PyQt6.QtWidgets import QApplication
 
-from common.application import SingletonApplication
-from common.config import config, Language
-from common.setting import APP_NAME
-from common.dpi_manager import DPI_SCALE
-from view.main_window import MainWindow
-from view.login import LoginWindow
-
-# fix bug: qt.qpa.plugin: Could not load the Qt platform plugin "xcb"
-if "QT_QPA_PLATFORM_PLUGIN_PATH" in os.environ:
-    os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
+from app.common.application import SingletonApplication
+from app.common.config import config, Language
+from app.common.setting import APP_NAME
+from app.common.dpi_manager import DPI_SCALE
+from app.view.MainLogin import MainLoginWindow
+from app.common.db.database import init_db
 
 # enable high dpi scale
-os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
-os.environ["QT_SCALE_FACTOR"] = str(DPI_SCALE)
+# os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+# os.environ["QT_SCALE_FACTOR"] = str(DPI_SCALE)
 
-QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+if __name__ == "__main__":
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
-app = SingletonApplication(sys.argv, APP_NAME)
-app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-app.setApplicationName(APP_NAME)
+    app = SingletonApplication(sys.argv, APP_NAME)
+    app.setApplicationName(APP_NAME)
 
-# Internationalization
-# translator = QTranslator()
-# language = config.get(config.language)  # type: Language
 
-# app.installTranslator(translator)
+    # Initialize database
+    init_db()
 
-# create main window
-project = LoginWindow()
-project.show()
+    # create main window
+    project = MainLoginWindow()
+    project.show()
 
-app.exec_()
+    app.exec()

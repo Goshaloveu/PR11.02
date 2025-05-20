@@ -3,7 +3,7 @@ import sys
 import traceback
 from typing import List
 
-from PyQt6.QtCore import QIODevice, QSharedMemory, pyqtSignal
+from PyQt6.QtCore import QIODevice, QSharedMemory, pyqtSignal, QIODeviceBase
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 from PyQt6.QtWidgets import QApplication
 
@@ -57,7 +57,7 @@ class SingletonApplication(QApplication):
 
         # connect to another application
         socket = QLocalSocket(self)
-        socket.connectToServer(self.key, QIODevice.WriteOnly)
+        socket.connectToServer(self.key, QIODeviceBase.OpenModeFlag.WriteOnly)
         if not socket.waitForConnected(self.timeout):
             self.logger.error(socket.errorString())
             return

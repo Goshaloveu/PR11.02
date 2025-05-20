@@ -1,16 +1,16 @@
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, LineEdit, PushButton, CaptionLabel
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QListWidgetItem, QFrame, QTreeWidgetItem, QHBoxLayout,
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QListWidgetItem, QFrame, QTreeWidgetItem, QHBoxLayout,
                              QTreeWidgetItemIterator, QTableWidgetItem)
 from qfluentwidgets import TreeWidget, TableWidget, ListWidget, HorizontalFlipView, TitleLabel
-from .gallery_interface import GalleryInterface
+from .legacy.gallery_interface import GalleryInterface
 from ..common.translator import Translator
 from ..common.style_sheet import StyleSheet
-from PySide6 import QtWidgets
+from PyQt6 import QtWidgets
 
-from PySide6.QtCore import Qt, QUrl, QEvent, QDate, QTime
-from PySide6.QtGui import QDesktopServices, QPainter, QPen, QColor
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
+from PyQt6.QtCore import Qt, QUrl, QEvent, QDate, QTime
+from PyQt6.QtGui import QDesktopServices, QPainter, QPen, QColor
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
 
 from qfluentwidgets import (ScrollArea, PushButton, ToolButton, FluentIcon,
                             isDarkTheme, IconWidget, Theme, ToolTipFilter, TitleLabel, CaptionLabel,
@@ -34,10 +34,10 @@ class AddMessageBoxPassengers(MessageBoxBase):
         super().__init__(parent)
         self.titleLabel = SubtitleLabel('Добавление данных', self)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         self.NameEdit = LineEdit(self)
         self.NameEdit.setPlaceholderText('Имя')
@@ -54,7 +54,7 @@ class AddMessageBoxPassengers(MessageBoxBase):
         self.MiddleEdit.setClearButtonEnabled(True)
         self.firstH.addWidget(self.MiddleEdit)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         self.pass_series = LineEdit(self)
         self.pass_series.setPlaceholderText('Серия паспорта')
@@ -70,7 +70,7 @@ class AddMessageBoxPassengers(MessageBoxBase):
         self.gender.addItems(["m", "f"])
         self.secondH.addWidget(self.gender)
         
-        self.thirdH = QHBoxLayout(self)
+        self.thirdH = QHBoxLayout()
         self.thirdH.setObjectName("3_HorizontalLayout")
         self.mail = LineEdit(self)
         self.mail.setPlaceholderText('Почта')
@@ -82,7 +82,7 @@ class AddMessageBoxPassengers(MessageBoxBase):
         self.number.setClearButtonEnabled(True)
         self.thirdH.addWidget(self.number)
         
-        self.fourthH = QHBoxLayout(self)
+        self.fourthH = QHBoxLayout()
         self.fourthH.setObjectName("4_HorizontalLayout")
         self.date = CalendarPicker(self)
         self.date.setText("Дата рождения")
@@ -128,10 +128,6 @@ class AddMessageBoxPassengers(MessageBoxBase):
         # change the text of button
         self.yesButton.setText('Обновить данные')
 
-        self.widget.setMinimumWidth(350)
-
-        # self.hideYesButton()
-
     def validate(self):
         """ Rewrite the virtual method """
         isPassSeriesValid = re.fullmatch(r"\d{4}", self.pass_series.text())
@@ -168,12 +164,12 @@ class AddMessageBoxTask(MessageBoxBase):
         self.user = user
         self.titleLabel = SubtitleLabel('Добавление задания', self)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
 
         name, last = morph.parse(self.user.first)[0].inflect({'gent'}).word, morph.parse(self.user.last)[0].inflect({'gent'}).word
         self.label = BodyLabel(f"Задание от {str.capitalize(name)} {str.capitalize(last)}", self)
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         self.TitleEdit = LineEdit(self)
         self.TitleEdit.setMaxLength(30)
@@ -181,7 +177,7 @@ class AddMessageBoxTask(MessageBoxBase):
         self.TitleEdit.setClearButtonEnabled(True)
         self.firstH.addWidget(self.TitleEdit)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         self.TextEdit = TextEdit(self)
         self.TextEdit.setPlaceholderText('Описание задачи . . .')
@@ -208,10 +204,6 @@ class AddMessageBoxTask(MessageBoxBase):
         self.yesButton.setText('Добавить')
         self.cancelButton.setText('Отмена')
 
-        self.widget.setMinimumWidth(350)
-
-        # self.hideYesButton()
-
     def validate(self):
         """ Rewrite the virtual method """
         nullable = bool(self.TitleEdit.text())
@@ -227,10 +219,10 @@ class UpdateMessageBoxApp(MessageBoxBase):
         self.user = user
         self.titleLabel = SubtitleLabel('Задание', self)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
 
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         self.TitleEdit = LineEdit(self)
         self.TitleEdit.setMaxLength(30)
@@ -239,7 +231,7 @@ class UpdateMessageBoxApp(MessageBoxBase):
         self.TitleEdit.setClearButtonEnabled(True)
         self.firstH.addWidget(self.TitleEdit)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         self.TextEdit = TextEdit(self)
         self.TextEdit.setPlaceholderText('Описание задачи . . .')
@@ -270,10 +262,6 @@ class UpdateMessageBoxApp(MessageBoxBase):
             self.cancelButton.setText('Ок')
             self.yesButton.hide()
 
-        self.widget.setMinimumWidth(350)
-
-        # self.hideYesButton()
-
     def validate(self):
         """ Rewrite the virtual method """
         nullable = bool(self.TitleEdit.text())
@@ -288,10 +276,10 @@ class CheckMessageBoxApp(MessageBoxBase):
         self.user = user
         self.titleLabel = SubtitleLabel('Подробнее о задании', self)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
 
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         self.TitleEdit = LineEdit(self)
         self.TitleEdit.setMaxLength(30)
@@ -299,7 +287,7 @@ class CheckMessageBoxApp(MessageBoxBase):
         self.TitleEdit.setEnabled(False)
         self.firstH.addWidget(self.TitleEdit)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         self.TextEdit = TextEdit(self)
         self.TextEdit.setText(self.user.text)
@@ -323,30 +311,6 @@ class CheckMessageBoxApp(MessageBoxBase):
             self.yesButton.setText('Ок')
             self.cancelButton.hide()
 
-        self.widget.setMinimumWidth(350)
-    
-    
-# class UpdateMessageBoxPassengers(AddMessageBoxPassengers):
-#     """ Custom message box """
-
-#     def __init__(self, row_data, parent=None):
-#         super(UpdateMessageBoxPassengers, self).__init__(parent)
-        
-#         self.id = row_data[0]
-#         self.NameEdit.setText(row_data[1])
-#         self.LastEdit.setText(row_data[2])
-#         self.MiddleEdit.setText(row_data[3])
-#         self.pass_series.setText(str(row_data[4]))
-#         self.pass_number.setText(str(row_data[5]))
-#         self.mail.setText(row_data[6])
-#         self.date.setDate(QDate.fromString(row_data[7], "yyyy-MM-dd"))
-#         self.address.setText(row_data[8])
-#         self.number.setText(str(row_data[9]))
-#         self.gender.setCurrentIndex(0 if row_data[10] == "m" else 1)
-        
-#         self.yesButton.setText('Обновить')
-#         self.titleLabel.setText("Обновление данных")
-
 
 class AddMessageBoxFlight(MessageBoxBase):
     """ Custom message box """
@@ -355,10 +319,10 @@ class AddMessageBoxFlight(MessageBoxBase):
         super().__init__(parent)
         self.titleLabel = SubtitleLabel('Добавление данных', self)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         
         self.category = ComboBox(self)
@@ -375,7 +339,7 @@ class AddMessageBoxFlight(MessageBoxBase):
         self.status.addItems(["fly", "end", "start"])
         self.firstH.addWidget(self.status)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         
         self.FromEdit = LineEdit(self)
@@ -388,14 +352,14 @@ class AddMessageBoxFlight(MessageBoxBase):
         self.DirectEdit.setClearButtonEnabled(True)
         self.secondH.addWidget(self.DirectEdit)
         
-        self.thirdH = QHBoxLayout(self)
+        self.thirdH = QHBoxLayout()
         self.thirdH.setObjectName("3_HorizontalLayout")
         
         self.date = CalendarPicker(self)
         self.date.setText("Дата вылета")
         self.thirdH.addWidget(self.date)
         
-        self.fourthH = QVBoxLayout(self)
+        self.fourthH = QVBoxLayout()
         self.fourthH.setObjectName("4_VerticalLayout")
         
         self.timeLabel = BodyLabel('Время вылета', self)
@@ -423,10 +387,6 @@ class AddMessageBoxFlight(MessageBoxBase):
         # change the text of button
         self.yesButton.setText('Добавить')
         self.cancelButton.setText('Отмена')
-
-        self.widget.setMinimumWidth(350)
-
-        # self.hideYesButton()
 
     def validate(self):
         """ Rewrite the virtual method """
@@ -456,8 +416,8 @@ class UpdateMessageBoxFlight(AddMessageBoxFlight):
         
         self.yesButton.setText('Обновить')
         self.titleLabel.setText("Обновление данных")
-        
-        
+
+
 class AddMessageBoxTicket(MessageBoxBase):
     """ Custom message box """
 
@@ -470,10 +430,10 @@ class AddMessageBoxTicket(MessageBoxBase):
         self.passengers = set([str(i.id) for i in rq.get_table("passengers")])
         print(self.passengers)
         
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         
-        self.firstH = QHBoxLayout(self)
+        self.firstH = QHBoxLayout()
         self.firstH.setObjectName("1_HorizontalLayout")
         
         self.category = ComboBox(self)
@@ -490,7 +450,7 @@ class AddMessageBoxTicket(MessageBoxBase):
         self.status.addItems(["available", "sold", "expired"])
         self.firstH.addWidget(self.status)
         
-        self.secondH = QHBoxLayout(self)
+        self.secondH = QHBoxLayout()
         self.secondH.setObjectName("2_HorizontalLayout")
         
         self.FromEdit = LineEdit(self)
@@ -503,14 +463,14 @@ class AddMessageBoxTicket(MessageBoxBase):
         self.PlaceEdit.setClearButtonEnabled(True)
         self.secondH.addWidget(self.PlaceEdit)
         
-        self.thirdH = QHBoxLayout(self)
+        self.thirdH = QHBoxLayout()
         self.thirdH.setObjectName("3_HorizontalLayout")
         
         self.date = CalendarPicker(self)
         self.date.setText("Дата покупки")
         self.thirdH.addWidget(self.date)
         
-        self.fourthH = QVBoxLayout(self)
+        self.fourthH = QVBoxLayout()
         self.fourthH.setObjectName("4_VerticalLayout")
         
         self.timeLabel = BodyLabel('Время покупки', self)
@@ -551,10 +511,6 @@ class AddMessageBoxTicket(MessageBoxBase):
         self.yesButton.setText('Добавить')
         self.cancelButton.setText('Отмена')
 
-        self.widget.setMinimumWidth(350)
-
-        # self.hideYesButton()
-
     def validate(self):
         """ Rewrite the virtual method """
         
@@ -572,9 +528,6 @@ class AddMessageBoxTicket(MessageBoxBase):
         self.warningLabelNull.setHidden(nullable)
         
         isExist = not rq.check_ticket(self.reis[self.category.text() + self.numberEdit.text()], self.PlaceEdit.text())
-        # ex = rq.a_check_ticket(self.reis[self.category.text() + self.numberEdit.text()], self.PlaceEdit.text())
-        # print(ex.__dict__)
-        # print(self.category.text() + self.numberEdit.text(), self.reis[self.category.text() + self.numberEdit.text()])
         self.warningLabelOp.setHidden(isExist)
         
         isValid = isPassengerValid and isFlightValid and nullable and isExist
@@ -626,13 +579,9 @@ class UpdateMessageBoxTicket(AddMessageBoxTicket):
 
         self.warningLabelNull.setHidden(nullable)
         
-        # isExist = not rq.check_ticket(self.reis[self.category.text() + self.numberEdit.text()], self.PlaceEdit.text())
-        # ex = rq.a_check_ticket(self.reis[self.category.text() + self.numberEdit.text()], self.PlaceEdit.text())
-        # print(ex.__dict__)
-        # print(self.category.text() + self.numberEdit.text(), self.reis[self.category.text() + self.numberEdit.text()])
-        # self.warningLabelOp.setHidden(isExist)
+        isExist = not rq.check_ticket(self.reis[self.category.text() + self.numberEdit.text()], self.PlaceEdit.text())
+        self.warningLabelOp.setHidden(isExist)
         
-        isValid = isPassengerValid and isFlightValid and nullable \
-                                    # and isExist
+        isValid = isPassengerValid and isFlightValid and nullable and isExist
         
         return isValid

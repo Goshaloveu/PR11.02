@@ -1,12 +1,15 @@
 # repositories.py
 from typing import List, Optional, Type, TypeVar, Generic, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import select, update as sql_update, delete as sql_delete, func
+from sqlalchemy.orm import Session, joinedload, selectinload, subqueryload
+from sqlalchemy import select, update as sql_update, delete as sql_delete, func, case, literal_column, and_, or_
 from pydantic import BaseModel as PydanticBaseModel
 import logging
+from datetime import datetime
 
 from .database import Base as SQLAlchemyBaseModel
 from .models_pydantic import BaseEntity as PydanticBaseEntity
+from .utils import UUIDUtils # Локальный импорт
+from ...common.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +36,6 @@ class BaseRepository(Generic[SQLAlchemyModelType, CreateSchemaType, UpdateSchema
         obj_in_data = obj_in.model_dump()
         if 'id_' in obj_in_data: obj_in_data['id'] = obj_in_data.pop('id_')
         if 'id' not in obj_in_data or not obj_in_data['id']: # Если ID не пришел из Pydantic
-            from utils import UUIDUtils # Локальный импорт
             obj_in_data['id'] = UUIDUtils.getUUID()
 
         db_obj = self._model(**obj_in_data)
@@ -91,20 +93,32 @@ class ClientRepository(BaseRepository[Client, ClientCreate, ClientUpdate]):
         try: return db.execute(statement).scalars().all()
         except Exception as e: logger.error(f"Repo Error finding client by phone/email: {e}"); db.rollback(); return []
 
-    def get_by_username(self, db: Session, username: str) -> Optional[Client]:
-        """ Найти клиента по username (регистронезависимо) """
-        statement = select(self._model).where(func.lower(self._model.username) == func.lower(username))
+    def get_by_phone(self, db: Session, phone: str) -> Optional[Client]:
+        """ Найти клиента по номеру телефона """
+        statement = select(self._model).where(self._model.phone == phone)
         try: return db.execute(statement).scalar_one_or_none()
-        except Exception as e: logger.error(f"Repo Error getting client by username {username}: {e}"); db.rollback(); return None
+        except Exception as e: logger.error(f"Repo Error getting client by phone {phone}: {e}"); db.rollback(); return None
+
+    def get_by_email(self, db: Session, email: str) -> Optional[Client]:
+        """ Найти клиента по email """
+        statement = select(self._model).where(func.lower(self._model.mail) == func.lower(email))
+        try: return db.execute(statement).scalar_one_or_none()
+        except Exception as e: logger.error(f"Repo Error getting client by email {email}: {e}"); db.rollback(); return None
 
 class WorkerRepository(BaseRepository[Worker, WorkerCreate, WorkerUpdate]):
     def __init__(self): super().__init__(Worker)
 
-    def get_by_username(self, db: Session, username: str) -> Optional[Worker]:
-        """ Найти работника по username (регистронезависимо) """
-        statement = select(self._model).where(func.lower(self._model.username) == func.lower(username))
+    def get_by_phone(self, db: Session, phone: str) -> Optional[Worker]:
+        """ Найти работника по номеру телефона """
+        statement = select(self._model).where(self._model.phone == phone)
         try: return db.execute(statement).scalar_one_or_none()
-        except Exception as e: logger.error(f"Repo Error getting worker by username {username}: {e}"); db.rollback(); return None
+        except Exception as e: logger.error(f"Repo Error getting worker by phone {phone}: {e}"); db.rollback(); return None
+
+    def get_by_email(self, db: Session, email: str) -> Optional[Worker]:
+        """ Найти работника по email """
+        statement = select(self._model).where(func.lower(self._model.mail) == func.lower(email))
+        try: return db.execute(statement).scalar_one_or_none()
+        except Exception as e: logger.error(f"Repo Error getting worker by email {email}: {e}"); db.rollback(); return None
 
 class ProviderRepository(BaseRepository[Provider, ProviderCreate, ProviderUpdate]):
     def __init__(self): super().__init__(Provider)
@@ -157,6 +171,49 @@ class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
         statement = select(self._model).where(self._model.worker_id == worker_id)
         try: return db.execute(statement).scalars().all()
         except Exception as e: logger.error(f"Repo Error finding orders by worker {worker_id}: {e}"); db.rollback(); return []
+    
+    def find_with_filters(self, db: Session, filters: Dict[str, Any], date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> List[Order]:
+        """Find orders with multiple filters"""
+        statement = select(self._model)
+        
+        # Apply all filters
+        for field, value in filters.items():
+            statement = statement.where(getattr(self._model, field) == value)
+            
+        # Apply date range if provided
+        if date_from:
+            statement = statement.where(self._model.date >= date_from)
+        if date_to:
+            statement = statement.where(self._model.date <= date_to)
+            
+        try:
+            return db.execute(statement).scalars().all()
+        except Exception as e:
+            logger.error(f"Repo Error finding orders with filters {filters}: {e}")
+            db.rollback()
+            return []
+            
+    def count_with_filters(self, db: Session, filters: Dict[str, Any], date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> int:
+        """Count orders with multiple filters"""
+        from sqlalchemy import func
+        statement = select(func.count()).select_from(self._model)
+        
+        # Apply all filters
+        for field, value in filters.items():
+            statement = statement.where(getattr(self._model, field) == value)
+            
+        # Apply date range if provided
+        if date_from:
+            statement = statement.where(self._model.date >= date_from)
+        if date_to:
+            statement = statement.where(self._model.date <= date_to)
+            
+        try:
+            return db.execute(statement).scalar() or 0
+        except Exception as e:
+            logger.error(f"Repo Error counting orders with filters {filters}: {e}")
+            db.rollback()
+            return 0
 
 class MaterialOnOrderRepository(BaseRepository[MaterialOnOrder, MaterialOnOrderCreate, MaterialOnOrderUpdate]):
     def __init__(self): super().__init__(MaterialOnOrder)

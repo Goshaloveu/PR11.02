@@ -1,7 +1,7 @@
 # coding:utf-8
 import sys
-from PyQt5.QtCore import QPoint
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtCore import QPoint
+from PyQt6.QtWidgets import QWidget
 
 if sys.platform == "win32":
     from .win_utils import WindowsMoveResize as MoveResize

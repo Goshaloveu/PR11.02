@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QListWidgetItem, QFrame, QTreeWidgetItem, QHBoxLayout,
                              QTreeWidgetItemIterator, QTableWidgetItem)
 from qfluentwidgets import TreeWidget, TableWidget, ListWidget, HorizontalFlipView, TitleLabel
-from .gallery_interface import GalleryInterface
+from .legacy.gallery_interface import GalleryInterface
 from ..common.translator import Translator
 from ..common.style_sheet import StyleSheet
 from PyQt6 import QtWidgets

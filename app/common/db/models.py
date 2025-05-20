@@ -6,6 +6,7 @@ from .models_sqlalchemy import (
     Order,
     MaterialOnOrder,
     MaterialProvider,
+    Provider,
 )
 from .models_pydantic import OrderStatus
 
@@ -16,5 +17,6 @@ __all__ = [
     'Order',
     'MaterialOnOrder',
     'MaterialProvider',
+    'Provider',
     'OrderStatus',
 ] 
