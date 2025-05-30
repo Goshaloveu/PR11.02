@@ -42,6 +42,12 @@ class OrdersInterface(ScrollArea):
         self.setWidget(self.scroll_widget)
         self.setWidgetResizable(True)
         
+        # Create orders_layout early to avoid errors in load_orders
+        self.orders_container = QWidget()
+        self.orders_layout = QVBoxLayout(self.orders_container)
+        self.orders_layout.setSpacing(15)
+        self.orders_layout.setContentsMargins(5, 5, 5, 5)
+        
         # Set modern fonts as class variables
         self.main_font = QFont("Inter", 10)
         self.header_font = QFont("Inter", 16, weight=QFont.Weight.DemiBold)
@@ -376,12 +382,6 @@ class OrdersInterface(ScrollArea):
         orders_layout.addWidget(sort_card)
         orders_layout.addSpacing(10)
         
-        # Create a direct container for order cards without additional scrolling
-        self.orders_container = QWidget()
-        self.orders_layout = QVBoxLayout(self.orders_container)
-        self.orders_layout.setSpacing(15)
-        self.orders_layout.setContentsMargins(5, 5, 5, 5)
-        
         # Add the container directly to the orders layout
         orders_layout.addWidget(self.orders_container, 1)  # 1 is the stretch factor
         
@@ -403,6 +403,11 @@ class OrdersInterface(ScrollArea):
         self.last_month_btn.setEnabled(enabled)
         self.last_year_btn.setEnabled(enabled)
         self.all_time_btn.setEnabled(enabled)
+        
+        # Only load orders if not during initial setup
+        # We can check if the UI setup is complete by checking if we're visible
+        if self.isVisible():
+            self.load_orders()
     
     def set_quick_date_filter(self, days):
         """Устанавливает быстрый фильтр по дате"""
@@ -498,6 +503,11 @@ class OrdersInterface(ScrollArea):
     
     def load_orders(self):
         """Загружает заказы с учетом фильтров"""
+        # Safety check - make sure orders_layout is initialized
+        if not hasattr(self, 'orders_layout'):
+            print("Warning: orders_layout not initialized yet, skipping load_orders")
+            return
+            
         # Get filter values
         status_filter = self.status_combo.currentText()
         search_query = self.search_edit.text().strip().lower()

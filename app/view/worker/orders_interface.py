@@ -38,14 +38,23 @@ class OrdersInterface(QWidget):
         self.client_controller = ClientController()
         self.worker_controller = WorkerController()
         
-        # Initialize filters
+        # Initialize filters with default values
+        from datetime import datetime
+        
+        today = datetime.now()
+        start_of_month = datetime(today.year, today.month, 1).date()
+        
         self.filters = {
             "status": None,
             "client_id": None,
-            "date_from": None,
-            "date_to": None,
+            "date_from": start_of_month,  # First day of current month
+            "date_to": today.date(),      # Today
             "show_all": True  # По умолчанию показываем все заказы
         }
+        
+        # Create progress bar early to avoid errors
+        self.progress_bar = IndeterminateProgressBar()
+        self.progress_bar.setVisible(False)
         
         # Setup UI
         self._setup_ui()
@@ -123,10 +132,19 @@ class OrdersInterface(QWidget):
         date_range_layout = QHBoxLayout()
         date_range_layout.setSpacing(10)
         
+        # Инициализация дат с более интуитивными значениями
+        from datetime import datetime, timedelta
+        
+        # Дата "ОТ" - первое число текущего месяца
         self.date_from = DateEdit()
+        today = datetime.now()
+        start_of_month = datetime(today.year, today.month, 1)
+        self.date_from.setDate(start_of_month)
         self.date_from.dateChanged.connect(self._on_filter_changed)
         
+        # Дата "ДО" - сегодня
         self.date_to = DateEdit()
+        self.date_to.setDate(today)
         self.date_to.dateChanged.connect(self._on_filter_changed)
         
         date_range_layout.addWidget(self.date_from)
@@ -167,7 +185,9 @@ class OrdersInterface(QWidget):
 
     def load_orders(self):
         """Load orders based on current filters"""
-        self.progress_bar.setVisible(True)
+        # Check if progress_bar exists before using it
+        if hasattr(self, 'progress_bar'):
+            self.progress_bar.setVisible(True)
         
         # Clear table
         while self.orders_table.rowCount() > 0:
@@ -186,19 +206,28 @@ class OrdersInterface(QWidget):
             date_to = self.filters.get("date_to")
             show_all = self.filters.get("show_all", True)  # По умолчанию показываем все заказы
             
+            # Debug info
+            print(f"Filtering with: status={status}, client_id={client_id}, date_from={date_from}, date_to={date_to}, show_all={show_all}")
+            if client_id is not None:
+                print(f"Client ID type: {type(client_id).__name__}, value: {client_id}")
+            
             # Get orders
             if show_all:
+                print("Loading ALL orders with filters")
                 # Get all orders if show_all is enabled
                 orders = self.order_controller.get_filtered_orders(
                     db, status=status, client_id=client_id,
                     date_from=date_from, date_to=date_to
                 )
             else:
+                print(f"Loading WORKER orders for worker_id: {worker_id}")
                 # Get only worker's orders
                 orders = self.order_controller.get_filtered_orders(
                     db, worker_id=worker_id, status=status, client_id=client_id,
                     date_from=date_from, date_to=date_to
                 )
+                
+            print(f"Found {len(orders)} orders matching filters")
             
             # Populate table
             for i, order in enumerate(orders):
@@ -244,7 +273,8 @@ class OrdersInterface(QWidget):
             )
         finally:
             db.close()
-            self.progress_bar.setVisible(False)
+            if hasattr(self, 'progress_bar'):
+                self.progress_bar.setVisible(False)
 
     def _update_statistics(self, db):
         """Update order statistics cards"""
@@ -254,19 +284,40 @@ class OrdersInterface(QWidget):
                 self.stats_layout.itemAt(i).widget().setParent(None)
         
         worker_id = None if self.filters.get("show_all", True) else self.user_data.get('id')
+        client_id = self.filters.get("client_id")
+        date_from = self.filters.get("date_from")
+        date_to = self.filters.get("date_to")
         
-        # Count orders by status
-        new_count = self.order_controller.count_by_status(db, "new", worker_id)
-        in_progress_count = self.order_controller.count_by_status(db, "in_progress", worker_id)
-        completed_count = self.order_controller.count_by_status(db, "completed", worker_id)
-        cancelled_count = self.order_controller.count_by_status(db, "cancelled", worker_id)
-        total_count = new_count + in_progress_count + completed_count + cancelled_count
+        # Count orders by status with correct status values and filter context
+        # For "processing" status - use string directly
+        processing_orders = self.order_controller.get_filtered_orders(
+            db, status="Обработка", worker_id=worker_id,
+            client_id=client_id, date_from=date_from, date_to=date_to
+        )
+        processing_count = len(processing_orders) if processing_orders else 0
         
-        # Создаем карточки статистики с корректными иконками (без COMPLETE/DONE)
+        # For "in progress" status - use string directly
+        in_progress_orders = self.order_controller.get_filtered_orders(
+            db, status="В работе", worker_id=worker_id,
+            client_id=client_id, date_from=date_from, date_to=date_to
+        )
+        in_progress_count = len(in_progress_orders) if in_progress_orders else 0
+        
+        # For "completed" status - use string directly
+        completed_orders = self.order_controller.get_filtered_orders(
+            db, status="Выполнен", worker_id=worker_id,
+            client_id=client_id, date_from=date_from, date_to=date_to
+        )
+        completed_count = len(completed_orders) if completed_orders else 0
+        
+        # Calculate total
+        total_count = processing_count + in_progress_count + completed_count
+        
+        # Создаем карточки статистики с корректными иконками
         self._add_stat_card("Всего заказов", total_count, FluentIcon.VIEW)
+        self._add_stat_card("Новые", processing_count, FluentIcon.ADD)
         self._add_stat_card("В работе", in_progress_count, FluentIcon.CONSTRACT)
-        self._add_stat_card("Выполненные", completed_count, FluentIcon.CHECKBOX) # Используем CHECK вместо DONE/COMPLETE
-        self._add_stat_card("Отмененные", cancelled_count, FluentIcon.CANCEL)
+        self._add_stat_card("Выполненные", completed_count, FluentIcon.ACCEPT) # Используем ACCEPT для выполненных заказов
 
     def _add_stat_card(self, title, count, icon):
         """Add a statistics card"""
@@ -312,6 +363,44 @@ class OrdersInterface(QWidget):
         self.stats_layout.addWidget(card_widget, 1)  # Растягиваем все карточки одинаково
 
     def _on_filter_changed(self):
+        # Update filters dictionary with current UI values
+        status_idx = self.status_combo.currentIndex()
+        client_idx = self.client_combo.currentIndex()
+        
+        # Debug client combo
+        print(f"Client combo index: {client_idx}")
+        print(f"Client combo text: {self.client_combo.currentText()}")
+        client_data = self.client_combo.itemData(client_idx)
+        print(f"Client combo data: {client_data}, type: {type(client_data).__name__}")
+        
+        # Status filter - use the actual status string (not the enum)
+        if status_idx > 0:  # Not "All statuses"
+            self.filters["status"] = self.status_combo.currentText()
+        else:
+            self.filters["status"] = None
+            
+        # Client filter - use the client ID properly
+        if client_idx > 0:  # Not "All clients"
+            client_id = self.client_combo.itemData(client_idx)
+            # Ensure client_id is properly extracted 
+            if client_id is not None:
+                self.filters["client_id"] = client_id  # Use the string value directly
+                print(f"Set client filter to ID: {self.filters['client_id']}")
+            else:
+                self.filters["client_id"] = None
+                print("Client data was None even though index > 0")
+        else:
+            self.filters["client_id"] = None
+            print("Client filter set to None (All clients)")
+        
+        # Date filters
+        if hasattr(self, 'date_from') and hasattr(self, 'date_to'):
+            self.filters["date_from"] = self.date_from.date().toPyDate()
+            self.filters["date_to"] = self.date_to.date().toPyDate()
+        
+        print(f"Updated filters: {self.filters}")
+            
+        # Reload orders with updated filters
         self.load_orders()
 
     def _setup_order_table(self):
@@ -349,11 +438,11 @@ class OrdersInterface(QWidget):
         layout.setContentsMargins(5, 0, 5, 0)
         layout.setSpacing(0)
         
-        # Edit button - только одна кнопка "Редактировать"
+        # Edit button - используем правильный метод, который открывает диалог редактирования
         edit_btn = TransparentToolButton(FluentIcon.EDIT)
         edit_btn.setIconSize(QSize(20, 20))
         edit_btn.setToolTip("Редактировать заказ")
-        edit_btn.clicked.connect(lambda: self._edit_order(order.id))
+        edit_btn.clicked.connect(lambda: self._show_order_details(order.id))
         edit_btn.setStyleSheet("""
             TransparentToolButton {
                 padding: 4px;
@@ -370,13 +459,13 @@ class OrdersInterface(QWidget):
     def _show_order_details(self, order_id):
         """Show order details"""
         dialog = OrderDetailsDialog(order_id, self.user_data, self)
-        dialog.exec()
+        result = dialog.exec()
+        # Always reload to refresh
+        self.load_orders()
         
     def _edit_order(self, order_id):
-        """Edit order"""
-        dialog = OrderDetailsDialog(order_id, self.user_data, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.load_orders()
+        """Edit order - now just a wrapper for _show_order_details for historical compatibility"""
+        self._show_order_details(order_id)
             
     def _change_order_status(self, order_id, current_status):
         """Open dialog to change order status"""
@@ -428,18 +517,18 @@ class OrdersInterface(QWidget):
                     subprocess.call(('open', pdf_path))
                 else:
                     subprocess.call(('xdg-open', pdf_path))
-                    
+            
                 InfoBar.success(
                     title="Успех",
                     content=f"Акт выполненных работ сохранен: {pdf_path}",
                     parent=self
-                )
+            )
             except Exception as e:
-                InfoBar.warning(
+                    InfoBar.warning(
                     title="Предупреждение",
                     content=f"Файл сохранен как {pdf_path}, но не удалось открыть его автоматически: {e}",
                     parent=self
-                )
+            )
             
         except Exception as e:
             InfoBar.error(
@@ -483,7 +572,7 @@ class OrdersInterface(QWidget):
                 )
             finally:
                 db.close()
-
+        
     def load_filters(self):
         """Load filter options from database"""
         try:
@@ -492,20 +581,34 @@ class OrdersInterface(QWidget):
             # Load status options
             self.status_combo.clear()
             self.status_combo.addItem("Все статусы", None)
-            self.status_combo.addItem("В работе", "in_progress") 
-            self.status_combo.addItem("Завершенные", "completed")
-            self.status_combo.addItem("Отмененные", "cancelled")
+            
+            # Add statuses as text directly, not using enum values
+            self.status_combo.addItem("Обработка", "Обработка")  
+            self.status_combo.addItem("В работе", "В работе")
+            self.status_combo.addItem("Выполнен", "Выполнен")
             
             # Load client options
             self.client_combo.clear()
             self.client_combo.addItem("Все клиенты", None)
             
+            # Print debug info about client loading
+            print("\nLoading clients for filter dropdown:")
+            
             clients = self.client_controller.get_all(db)
             for client in clients:
-                self.client_combo.addItem(
-                    f"{client.first} {client.last}", 
-                    client.id
-                )
+                display_text = f"{client.first} {client.last}"
+                client_id = client.id
+                print(f"Adding client: {display_text}, ID: {client_id}")
+                
+                # IMPORTANT: PyQt will convert userData to QVariant if it's not a standard Python type
+                # Convert UUID to string to avoid conversion issues
+                client_id_str = str(client_id)
+                self.client_combo.addItem(display_text, client_id_str)
+                
+            # Debug - print all items in combo box
+            print("\nAll clients in dropdown:")
+            for i in range(self.client_combo.count()):
+                print(f"Index {i}: Text={self.client_combo.itemText(i)}, Data={self.client_combo.itemData(i)}")
                 
         except Exception as e:
             InfoBar.error(
@@ -513,6 +616,7 @@ class OrdersInterface(QWidget):
                 content=f"Не удалось загрузить фильтры: {str(e)}",
                 parent=self
             )
+            print(f"Error loading filters: {str(e)}")
         finally:
             db.close()
 
@@ -743,7 +847,7 @@ class OrderDetailsDialog(QDialog):
             
             if order.prod_period:
                 self.period_label.setText(str(order.prod_period))
-            
+                
             # Set comment
             self.comment_edit.setText(order.comment if order.comment else "")
             
@@ -759,7 +863,7 @@ class OrderDetailsDialog(QDialog):
                 materials_list = order.materials_on_order
             elif hasattr(order, 'materials_link') and order.materials_link:
                 materials_list = order.materials_link
-            
+                
             # Add rows for materials
             for i, mat in enumerate(materials_list):
                 if hasattr(mat, 'material') and mat.material:
@@ -800,7 +904,7 @@ class OrderDetailsDialog(QDialog):
             self.reject()
         finally:
             db.close()
-    
+            
     def save_changes(self):
         """Save changes to order"""
         try:
@@ -815,7 +919,10 @@ class OrderDetailsDialog(QDialog):
                 
             db = SessionLocal()
             
-            # Create update data
+            # Create update data using OrderUpdate model but with string values
+            from ...common.db.models_pydantic import OrderUpdate
+            
+            # Create the OrderUpdate object with the raw string values
             update_data = OrderUpdate(
                 status=new_status,
                 comment=new_comment if new_comment else None
@@ -845,7 +952,7 @@ class OrderDetailsDialog(QDialog):
             )
         finally:
             db.close()
-    
+            
     def generate_statement(self, order_id):
         """Generate statement document for client"""
         try:
@@ -882,18 +989,18 @@ class OrderDetailsDialog(QDialog):
                     subprocess.call(('open', pdf_path))
                 else:
                     subprocess.call(('xdg-open', pdf_path))
-                    
+            
                 InfoBar.success(
                     title="Успех",
                     content=f"Документ сохранен: {pdf_path}",
                     parent=self
                 )
             except Exception as e:
-                InfoBar.warning(
+                    InfoBar.warning(
                     title="Предупреждение",
                     content=f"Файл сохранен как {pdf_path}, но не удалось открыть его автоматически: {e}",
-                    parent=self
-                )
+                parent=self
+            )
             
         except Exception as e:
             InfoBar.error(

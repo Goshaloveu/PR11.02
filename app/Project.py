@@ -42,3 +42,4 @@ if __name__ == "__main__":
     project.show()
 
     app.exec()
+
